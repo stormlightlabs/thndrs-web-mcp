@@ -1,0 +1,12 @@
+Configuration Surface                                            *configuration*
+================================================================================
+
+- BRAVE_API_KEY (required for web_search)
+- MCP_WEB_DB_PATH (default: ./mcp-web-cache.sqlite)
+- MCP_WEB_USER_AGENT (default: mcp-web/0.x)
+- MCP_WEB_MAX_BYTES (default: 5MB)
+- MCP_WEB_TIMEOUT_MS (default: 20000)
+- MCP_WEB_RESPECT_ROBOTS (default: true)
+- MCP_WEB_RENDER_ENABLED (default: false)
+- MCP_WEB_ALLOWLIST_DOMAINS (optional)
+- MCP_WEB_DENYLIST_DOMAINS (optional)

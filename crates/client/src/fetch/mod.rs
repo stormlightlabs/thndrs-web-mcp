@@ -1,4 +1,19 @@
 //! HTTP fetch pipeline with SSRF protection and robots.txt compliance.
+//!
+//! ### URL Canonicalization
+//! - Trim whitespace, ensure scheme (default: `https`)
+//! - Lowercase host, remove fragments
+//! - Preserve query string
+//!
+//! ### SSRF & Safety Gates
+//! - Deny private ranges (RFC1918, link-local, localhost, etc.)
+//! - Resolve DNS and validate all A/AAAA answers are public.
+//! - Max redirects: 5
+//! - Max body bytes: 5MB (configurable)
+//!
+//! ### robots.txt Compliance
+//! - Fetch and cache `robots.txt` per host (24h cache).
+//! - Evaluate `*` and current User-Agent.
 
 pub mod robots;
 pub mod ssrf;

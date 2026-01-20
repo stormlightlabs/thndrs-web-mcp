@@ -2,6 +2,16 @@
 //!
 //! Provides a client for the Brave Web Search API with rate limiting,
 //! request validation, and response normalization.
+//!
+//! ### Specification
+//!
+//! - **Endpoint**: `https://api.search.brave.com/res/v1/web/search`
+//! - **Authentication**: Uses `X-Subscription-Token` header.
+//! - **Rate Limiting**:
+//!   - Respects Brave's published rate limits (token bucket).
+//!   - Default 1s interval for free tier.
+//!   - Retries on 429 with backoff and transient 5xx.
+//! - **Normalization**: Converts Brave's response into a stable `SearchResult` struct.
 
 pub mod error;
 pub mod request;

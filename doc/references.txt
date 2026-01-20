@@ -1,0 +1,34 @@
+Reference URLs                                                      *references*
+================================================================================
+
+MCP (Model Context Protocol)
+- https://modelcontextprotocol.io/specification/2025-11-25/basic/transports
+- https://modelcontextprotocol.io/docs/learn/architecture
+- https://modelcontextprotocol.io/docs/develop/build-server
+- https://modelcontextprotocol.io/specification/2025-11-25/server/prompts
+- https://modelcontextprotocol.io/specification/2025-11-25/server/resources
+
+rmcp (official Rust MCP SDK)
+- https://github.com/modelcontextprotocol/rust-sdk
+- https://docs.rs/rmcp
+
+Brave Search API
+- https://api-dashboard.search.brave.com/documentation/quickstart
+- https://api-dashboard.search.brave.com/app/documentation/web-search/get-started
+- https://api-dashboard.search.brave.com/api-reference/web/search
+- https://api-dashboard.search.brave.com/terms-of-service
+
+Readable extraction (Rust)
+- https://github.com/stormlightlabs/lectito
+
+SQLite (Rust)
+- https://docs.rs/tokio-rusqlite/latest/tokio_rusqlite/
+
+Headless browser (Rust)
+- https://crates.io/crates/headless_chrome
+- https://docs.rs/chromiumoxide/latest/chromiumoxide/
+- https://crates.io/crates/chromiumoxide
+
+robots.txt parsing (Rust)
+- https://docs.rs/crate/robotstxt-rs/latest
+- https://github.com/Folyd/robotstxt

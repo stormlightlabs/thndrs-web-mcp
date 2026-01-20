@@ -1,0 +1,19 @@
+Security/Compliance Checklist                                         *security*
+================================================================================
+
+1. Security
+--------------------------------------------------------------------------------
+- SSRF protections (see fetch.txt)
+- robots.txt respect (see fetch.txt)
+- sanitize URLs in logs (no leaking tokens)
+- cap bytes + timeouts everywhere
+- limit concurrency and parallelism
+- disable rendered mode unless explicitly enabled
+
+2. Content rights
+--------------------------------------------------------------------------------
+- Store only what you need:
+  - extracted text/markdown is usually enough
+  - avoid storing full raw HTML unless required
+Brave notes they provide ranked public URLs/snippets; content rights remain with
+publishers—your access must comply with publisher terms.

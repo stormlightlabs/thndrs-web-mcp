@@ -1,0 +1,19 @@
+Test Plan                                                                 *test*
+================================================================================
+
+1. Unit tests
+--------------------------------------------------------------------------------
+- URL normalization
+- SSRF blocklist: ensure private ranges denied
+- Cache hashing stability
+- Brave request builder (no real network)
+- Extraction:
+  - small fixture pages (docs, blog, SPA shell)
+  - ensures code blocks preserved
+
+2. Integration tests (feature-gated)
+--------------------------------------------------------------------------------
+- Use VCR-style recorded HTTP fixtures (never hit Brave in CI by default)
+- SQLite migrations apply cleanly
+- web_open returns cached results on second call
+- robots disallow scenario using a local test server

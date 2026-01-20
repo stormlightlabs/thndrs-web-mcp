@@ -1,6 +1,17 @@
 //! Readable content extraction using Lectito.
 //!
 //! Provides a stable extraction abstraction that can be swapped later.
+//!
+//! ### Primary Algorithm
+//! - Uses Lectito's extraction pipeline (Readability.js-inspired).
+//! - Preprocessing, scoring, best-candidate selection, and cleanup.
+//!
+//! ### Stable Abstraction
+//! - Uses the `Extractor` trait for loose coupling between tools and the extraction engine.
+//!
+//! ### Output Normalization
+//! - Enforces consistent Markdown headers: `title`, `source`, `fetched_at`, `extractor`, `siteconfig`.
+//! - Ensures reproducibility by storing siteconfig IDs and extractor versions.
 
 pub mod links;
 pub mod normalize;

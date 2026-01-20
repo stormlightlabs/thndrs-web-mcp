@@ -1,0 +1,77 @@
+Architecture/Spec                                                 *architecture*
+================================================================================
+
+1. Spec
+--------------------------------------------------------------------------------
+MCP Capabilities:
+- Tools:
+  - web_search
+  - web_open
+  - web_batch_open
+  - web_extract
+  - cache_get
+  - cache_purge
+- Resources:
+  - resource://cache/<sha256>        => the cached Markdown for a doc snapshot
+  - resource://meta/<sha256>         => fetch metadata (headers, timings, etc.)
+- Prompts:
+  - docs_summarize_for_coding
+  - docs_extract_api_surface
+
+Summary of tools:
+(1) web_search       - Brave API search with filtering/pagination
+(2) web_open         - Fetch + extract URL (raw/readable/rendered modes)
+(3) web_batch_open   - Batch fetch with concurrency control
+(4) web_extract      - Extract from provided HTML (no network)
+(5) cache_get        - Retrieve cached snapshot by hash
+(6) cache_purge      - Purge cache entries by age/domain/count
+
+2. Workspace
+--------------------------------------------------------------------------------
+mcp-web/
+  Cargo.toml (workspace)
+  crates/
+    server                   ; (crate) main server binary + tool wiring
+    client                   ; (crate) client code shared by server + CLI
+      brave                  ; (mod) Brave API client
+      fetch                  ; (mod) HTTP fetch, robots, SSRF protections
+      extract                ; (mod) Lectito adapter + markdown normalization
+        adapter              ; (mod) thin wrapper around lectito-core
+        normalize            ; (mod) markdown normalization + frontmatter
+        links                ; (mod) link harvesting / URL fixing
+      render                 ; (mod) headless browser renderer
+    core                     ; (crate) shared structs (serde), errors, config
+      cache                  ; (mod) SQLite cache + migrations
+    cli                      ; (crate) CLI binary
+
+3. Key dependencies
+--------------------------------------------------------------------------------
+- MCP: official Rust SDK rmcp + macros for tools.
+- HTTP: reqwest + rustls
+- Extraction:
+  - lectito-core (Readability.js-inspired extraction engine)
+- SQLite:
+  - tokio_rusqlite (async rustqlite bindings)
+- Robots:
+  - robotstxt crate (or equivalent) (respect robots by default)
+- "rendered" mode:
+  - rust-headless-chrome (CDP) or chromiumoxide
+
+4. Rendered Mode (Headless browser)
+--------------------------------------------------------------------------------
+This is feature-gated and off by default.
+- If content-type is text/html but:
+  - body is tiny and script-heavy
+  - extractor yields < N chars
+  - page is known SPA doc site (config heuristics)
+
+5. MCP Server Implementation Plan (rmcp)
+--------------------------------------------------------------------------------
+- Use rmcp + #[tool] macro to declare tools; route through ToolRouter.
+- Transport: stdio
+- Runtime: tokio
+- web_search -> brave-client -> normalize -> optional short TTL cache
+- web_open -> cache lookup -> fetch -> extract -> cache upsert
+- web_batch_open -> bounded concurrency w/ tokio semaphore
+- web_extract -> pure function over html text (no network)
+- cache_get/cache_purge -> cache crate

@@ -1,0 +1,32 @@
+Fetch Pipeline Spec                                                      *fetch*
+================================================================================
+
+1. URL canonicalization
+--------------------------------------------------------------------------------
+- Trim whitespace, ensure scheme
+- Default scheme: https
+- Normalize:
+  - lowercase host
+  - remove fragment (#...)
+  - keep query string intact (do not reorder)
+
+2. SSRF + safety gates (default ON)
+--------------------------------------------------------------------------------
+- Deny:
+  - file://, data://, ftp://, chrome:// etc.
+  - localhost, 127.0.0.0/8, ::1
+  - RFC1918 private ranges (10/8, 172.16/12, 192.168/16)
+  - link-local (169.254/16), multicast, etc.
+- Resolve DNS and validate all A/AAAA answers are public.
+- Max redirects: 5
+- Max body bytes: configurable (default 5MB)
+- Timeout: configurable
+
+3. robots.txt compliance
+--------------------------------------------------------------------------------
+- Fetch robots.txt per host (cache it for 24h)
+- Evaluate user-agent group:
+  - Use "*" and your UA
+- If disallowed:
+  - Return a structured error:
+    { code: "ROBOTS_DISALLOWED", url, path, robots_url }

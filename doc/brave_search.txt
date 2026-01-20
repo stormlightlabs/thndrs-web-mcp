@@ -1,0 +1,33 @@
+Brave Search Client Spec                                          *brave-search*
+================================================================================
+
+1. Endpoint + auth
+--------------------------------------------------------------------------------
+- Base: https://api.search.brave.com/res/v1/
+- Web Search endpoint: GET /web/search?q=...
+- Auth: X-Subscription-Token header.
+
+2. Parameters to support
+--------------------------------------------------------------------------------
+- q (required)
+- count (<=20; default 20 in docs)
+- offset (0..9 page offset)
+- freshness (pd|pw|pm|py|custom range)
+- safesearch (off|moderate|strict; default moderate)
+- country, search_lang, ui_lang
+- extra_snippets=true
+- goggles
+- enable_rich_callback=1
+
+3. Result normalization
+--------------------------------------------------------------------------------
+Normalize Brave’s response into a stable internal struct:
+SearchResult { title, url, description, extra_snippets, rank }
+
+4. Rate limiting and retries
+--------------------------------------------------------------------------------
+- Respect Brave’s published rate limiting docs (implement token bucket).
+- Retry only on:
+  - 429 with backoff
+  - transient 5xx
+- Never retry non-idempotent endpoints (all ours are GET).

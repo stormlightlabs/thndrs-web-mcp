@@ -4,9 +4,11 @@
 //! with async access via tokio-rusqlite. It supports:
 //!
 //! - Content-addressed storage using SHA-256 hashing
+//!   - `hash = sha256(normalized_url + vary_headers + mode)`
 //! - Automatic schema migrations
-//! - WAL mode for concurrent access
-//! - Multiple purge strategies (age, domain, LRU)
+//! - WAL mode for concurrent access, NORMAL synchronous
+//! - Multiple purge strategies (age, domain, LRU-ish size ceiling)
+//! - Revalidation via ETag/Last-Modified or TTL-based expiry
 
 pub mod connection;
 pub mod hash;
