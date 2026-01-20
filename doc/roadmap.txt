@@ -65,8 +65,7 @@ B2. Key dependencies
     - default: disable "fetch" feature in server builds
     - keep "markdown" + "siteconfig" features enabled
 - SQLite:
-  - sqlx (async, compile-time checked optional; supports SQLite)
-  - or rusqlite if you want sync; but this spec assumes async server => sqlx.
+  - tokio_rusqlite (async rustqlite bindings)
 - Robots:
   - robotstxt crate (or equivalent) (respect robots by default)
 - "rendered" mode:
@@ -77,7 +76,7 @@ Cargo.toml (server crate) suggestion:
   rmcp -> features = ["server"]
   lectito-core -> features = ["markdown","siteconfig"]
   reqwest -> ["rustls-tls","gzip","brotli","deflate"]
-  sqlx -> ["sqlite","runtime-tokio-rustls","migrate"]
+  tokio_rusqlite
   tokio -> ["rt-multi-thread","macros"]
   serde -> ["derive"]
 
@@ -366,13 +365,13 @@ K. Milestones                                                                *K*
 
 K1. Milestone 1: MCP stdio server (no network)
 --------------------------------------------------------------------------------
-- [ ] rmcp server boots on stdio (tools registered via #[tool])
-- [ ] Implement web_extract via Lectito (Document::parse + extract_content)
+- [x] rmcp server boots on stdio (tools registered via #[tool])
+- [x] Implement web_extract via Lectito (Document::parse + extract_content)
       (Use git url: https://github.com/stormlightlabs/lectito)
 
 K2. Milestone 2: SQLite cache + migrations
 --------------------------------------------------------------------------------
-- [ ] Implement cache crate with sqlx sqlite
+- [ ] Implement cache mod with tokio_rustqlite
 - [ ] Add migrations for snapshots/search_cache (C2)
 - [ ] Enable WAL + pragmas (C3)
 - [ ] cache_get + cache_purge tools
@@ -449,8 +448,7 @@ Readable extraction (Rust)
 - https://github.com/stormlightlabs/lectito
 
 SQLite (Rust)
-- https://docs.rs/sqlx/latest/sqlx/
-- https://github.com/launchbadge/sqlx
+- https://docs.rs/tokio-rusqlite/latest/tokio_rusqlite/
 
 Headless browser (Rust)
 - https://crates.io/crates/headless_chrome

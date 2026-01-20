@@ -3,4 +3,23 @@ name = "thndrs-server"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "mcp-web"
+path = "src/main.rs"
+
 [dependencies]
+rmcp = { version = "0.13", features = ["server", "transport-io", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+anyhow = "1"
+
+lectito-core = { git = "https://github.com/stormlightlabs/lectito", default-features = false, features = [
+    "markdown",
+    "fetch",
+    "siteconfig",
+] }
