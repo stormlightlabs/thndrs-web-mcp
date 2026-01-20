@@ -3,11 +3,11 @@
 //! This tool extracts readable content from HTML using Lectito.
 //! No network I/O is performed - HTML is provided by the client.
 
-use crate::error::WebError;
 use lectito_core::{Readability, ReadabilityConfig, parse, parse_with_url};
 use rmcp::{ErrorData as McpError, model::*};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use thndrs_core::Error;
 
 /// Input parameters for web_extract tool.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -79,7 +79,7 @@ pub struct ExtractedLink {
 /// Implementation of the web_extract tool.
 pub async fn extract_impl(params: WebExtractParams) -> Result<CallToolResult, McpError> {
     if params.html.is_empty() {
-        return Err(WebError::InvalidInput("html cannot be empty".into()).into());
+        return Err(Error::InvalidInput("html cannot be empty".into()).into());
     }
 
     let article = if let Some(ref tuning) = params.config {
@@ -99,17 +99,17 @@ pub async fn extract_impl(params: WebExtractParams) -> Result<CallToolResult, Mc
         if let Some(ref base_url) = params.base_url {
             reader
                 .parse_with_url(&params.html, base_url)
-                .map_err(|e| WebError::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
+                .map_err(|e| Error::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
         } else {
             reader
                 .parse(&params.html)
-                .map_err(|e| WebError::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
+                .map_err(|e| Error::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
         }
     } else if let Some(ref base_url) = params.base_url {
         parse_with_url(&params.html, base_url)
-            .map_err(|e| WebError::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
+            .map_err(|e| Error::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
     } else {
-        parse(&params.html).map_err(|e| WebError::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
+        parse(&params.html).map_err(|e| Error::ExtractFailed(format!("Failed to parse HTML: {}", e)))?
     };
 
     let links = extract_links_from_html(&article.content, params.base_url.as_deref());
@@ -117,7 +117,7 @@ pub async fn extract_impl(params: WebExtractParams) -> Result<CallToolResult, Mc
     let (markdown, text) = if params.to_markdown {
         let md = article
             .to_markdown()
-            .map_err(|e| WebError::ExtractFailed(format!("Markdown conversion failed: {}", e)))?;
+            .map_err(|e| Error::ExtractFailed(format!("Markdown conversion failed: {}", e)))?;
         (Some(md), None)
     } else {
         (None, Some(article.to_text()))

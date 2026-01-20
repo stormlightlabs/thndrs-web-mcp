@@ -8,7 +8,6 @@ use rmcp::service::serve_server;
 use rmcp::transport::io::stdio;
 use tracing_subscriber::EnvFilter;
 
-mod error;
 mod handler;
 mod tools;
 
@@ -22,7 +21,7 @@ async fn main() -> Result<()> {
 
     tracing::info!("Starting mcp-web server on stdio transport");
 
-    let handler = handler::McpWebServer::new();
+    let handler = handler::McpWebServer::new().await?;
     let transport = stdio();
     let server = serve_server(handler, transport).await?;
 

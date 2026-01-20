@@ -371,10 +371,10 @@ K1. Milestone 1: MCP stdio server (no network)
 
 K2. Milestone 2: SQLite cache + migrations
 --------------------------------------------------------------------------------
-- [ ] Implement cache mod with tokio_rustqlite
-- [ ] Add migrations for snapshots/search_cache (C2)
-- [ ] Enable WAL + pragmas (C3)
-- [ ] cache_get + cache_purge tools
+- [x] Implement cache mod with tokio_rustqlite
+- [x] Add migrations for snapshots/search_cache (C2)
+- [x] Enable WAL + pragmas (C3)
+- [x] cache_get + cache_purge tools
 
 K3. Milestone 3: HTTP fetch pipeline (safe) + readable mode
 --------------------------------------------------------------------------------
@@ -428,11 +428,11 @@ K8. Milestone 8: Packaging + integration with your agent harness
 L. Reference URLs                                                          *L*
 ================================================================================
 MCP (Model Context Protocol)
-- https://modelcontextprotocol.io/specification/2025-06-18/basic/transports
+- https://modelcontextprotocol.io/specification/2025-11-25/basic/transports
 - https://modelcontextprotocol.io/docs/learn/architecture
 - https://modelcontextprotocol.io/docs/develop/build-server
-- https://modelcontextprotocol.io/specification/2025-06-18/server/prompts
-- https://modelcontextprotocol.io/specification/2025-06-18/server/resources
+- https://modelcontextprotocol.io/specification/2025-11-25/server/prompts
+- https://modelcontextprotocol.io/specification/2025-11-25/server/resources
 
 rmcp (official Rust MCP SDK)
 - https://github.com/modelcontextprotocol/rust-sdk

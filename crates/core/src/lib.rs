@@ -1,14 +1,12 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Core types and shared functionality for mcp-web.
+//!
+//! This crate provides:
+//! - Cache implementation with SQLite backend
+//! - Unified error types
+//! - Configuration structures
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod cache;
+pub mod error;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use cache::{CacheDb, Snapshot};
+pub use error::Error;
