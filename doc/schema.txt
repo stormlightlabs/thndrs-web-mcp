@@ -1,0 +1,277 @@
+================================================================================
+Thunderus Web MCP Server - Schema Reference                         *mcp-schema*
+================================================================================
+This document contains all tool input/output schemas and SQL database schemas
+for the Thunderus Web MCP Server.
+
+================================================================================
+TOOL SCHEMAS                                                                 *T*
+================================================================================
+T1. web_search                                                        *T-search*
+--------------------------------------------------------------------------------
+Input:
+  {
+    "query": string,                  ; user query
+    "count": number? = 10,            ; 1..20 recommended
+    "offset": number? = 0,            ; Brave: pages to skip (0..9)
+    "freshness": string? = "pw",      ; Brave supports pd|pw|pm|py|custom range
+    "country": string?                ; ISO-3166-1 alpha-2 (e.g. "US")
+    "search_lang": string?            ; ISO-639-1 (e.g. "en")
+    "ui_lang": string?                ; e.g. "en-US"
+    "safesearch": "off"|"moderate"|"strict"? = "moderate"
+    "extra_snippets": boolean? = true,
+    "goggles": string?                ; Brave goggles URL or inline def
+    "domain_allowlist": [string]?     ; post-filtering (optional)
+  }
+
+Output:
+  {
+    "results": [
+      {
+        "title": string,
+        "url": string,
+        "description": string,
+        "extra_snippets": [string]?,
+        "source": "brave",
+        "rank": number
+      }, ...
+    ],
+    "query": {
+      "original": string,
+      "more_results_available": boolean?
+    },
+    "debug": { "request_id": string? }
+  }
+
+Brave feature notes:
+- Pagination uses count + offset (0-based pages; max offset 9).
+- SafeSearch is safesearch={off|moderate|strict}.
+- Freshness filtering supports pd/pw/pm/py and custom ranges.
+- Extra snippets can be enabled with extra_snippets=true.
+
+
+--------------------------------------------------------------------------------
+T2. web_open                                                              *T-open*
+--------------------------------------------------------------------------------
+Input:
+  {
+    "url": string,
+    "mode": "raw"|"readable"|"rendered" = "readable",
+    "max_bytes": number? = 5242880,     ; 5MB default
+    "force_refresh": boolean? = false,
+    "timeout_ms": number? = 20000,
+    "accept": string?,                 ; optional Accept header override
+    "use_siteconfig": boolean? = true,
+    "siteconfig_id": string?,          ; override domain lookup (advanced)
+    "extract": {                       ; optional tuning knobs
+      "char_threshold": number?,       ; maps to lectito ExtractConfig
+      "max_top_candidates": number?
+    }
+  }
+
+Output:
+  {
+    "url": string,
+    "final_url": string,
+    "content_type": string,
+    "fetched_at": string (ISO8601),
+    "mode": string,
+    "raw": string?                      ; if mode=raw (truncated by max_bytes)
+    "markdown": string?                 ; if mode=readable|rendered
+    "title": string?,
+    "links": [{ "text": string, "href": string }]?,
+    "hash": string                      ; sha256 key for cached resource
+  }
+
+
+--------------------------------------------------------------------------------
+T3. web_batch_open                                                       *T-batch*
+--------------------------------------------------------------------------------
+Input:
+  {
+    "items": [{ "url": string, "mode": string? }...],
+    "concurrency": number? = 4
+  }
+
+Output:
+  { "items": [web_open_output...], "failed": [{ "url":..., "error":... }] }
+
+
+--------------------------------------------------------------------------------
+T4. web_extract                                                        *T-extract*
+--------------------------------------------------------------------------------
+Input:
+  {
+    "html": string,
+    "base_url": string?,
+    "strategy": "readability"|"dom_smoothie"|"plain_text" = "readability",
+    "to_markdown": boolean = true
+  }
+
+Output:
+  {
+    "title": string?,
+    "markdown": string,
+    "text": string?,
+    "links": [...],
+    "strategy_used": string
+  }
+
+
+--------------------------------------------------------------------------------
+T5. cache_get                                                         *T-cache-get*
+--------------------------------------------------------------------------------
+Input:
+  { "hash": string }
+
+Output:
+  cached snapshot (markdown + metadata)
+
+
+--------------------------------------------------------------------------------
+T6. cache_purge                                                     *T-cache-purge*
+--------------------------------------------------------------------------------
+Input:
+  { "older_than_days": number? , "domain": string? , "max_entries": number? }
+
+Output:
+  { "deleted": number }
+
+
+================================================================================
+SQL SCHEMAS                                                                  *S*
+================================================================================
+
+--------------------------------------------------------------------------------
+S1. snapshots table                                                  *S-snapshots*
+--------------------------------------------------------------------------------
+Purpose: Store one row per fetched document snapshot
+
+CREATE TABLE IF NOT EXISTS snapshots (
+  hash            TEXT PRIMARY KEY,
+  url             TEXT NOT NULL,
+  final_url       TEXT NOT NULL,
+  mode            TEXT NOT NULL,           -- raw|readable|rendered
+  content_type    TEXT,
+  status_code     INTEGER,
+  fetched_at      TEXT NOT NULL,           -- ISO8601
+  expires_at      TEXT,                    -- ISO8601 optional
+  etag            TEXT,
+  last_modified   TEXT,
+
+  -- raw payload (optional; store only if needed)
+  raw_bytes       BLOB,                    -- optional
+  raw_truncated   INTEGER NOT NULL DEFAULT 0,
+
+  -- extracted
+  title           TEXT,
+  markdown        TEXT,                    -- LLM-friendly
+  text           TEXT,                     -- optional plain text
+  links_json      TEXT,                    -- [{"text":..,"href":..}]
+
+  -- extractor metadata (for reproducibility)
+  extractor_name      TEXT,                -- "lectito-core"
+  extractor_version   TEXT,
+  siteconfig_id       TEXT,
+  extract_cfg_json    TEXT,
+
+  -- debug
+  headers_json    TEXT,                    -- minimal headers snapshot
+  fetch_ms        INTEGER,
+  extract_ms      INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshots_url ON snapshots(url);
+CREATE INDEX IF NOT EXISTS idx_snapshots_fetched ON snapshots(fetched_at);
+CREATE INDEX IF NOT EXISTS idx_snapshots_expires ON snapshots(expires_at);
+
+
+--------------------------------------------------------------------------------
+S2. search_cache table                                            *S-search-cache*
+--------------------------------------------------------------------------------
+Purpose: Cache search results with short TTL
+
+CREATE TABLE IF NOT EXISTS search_cache (
+  key_hash        TEXT PRIMARY KEY,        -- sha256(params)
+  query_json      TEXT NOT NULL,
+  response_json   TEXT NOT NULL,
+  fetched_at      TEXT NOT NULL,
+  expires_at      TEXT NOT NULL
+);
+
+
+--------------------------------------------------------------------------------
+S3. Cache Invariants                                               *S-invariants*
+--------------------------------------------------------------------------------
+- Cache is content-addressed by key hash:
+    hash = sha256(normalized_url + "\n" + vary_headers + "\n" + mode)
+
+- Always store:
+  - final_url (after redirects)
+  - fetched_at
+  - response headers snapshot (minimal)
+  - extraction output (markdown + title)
+  - extractor metadata (for reproducibility)
+
+- Prefer revalidation:
+  - If ETag present, revalidate via If-None-Match
+  - Else if Last-Modified, revalidate via If-Modified-Since
+  - Else TTL-based expiry (e.g., 7 days default, configurable)
+
+
+--------------------------------------------------------------------------------
+S4. SQLite Runtime Settings                                          *S-settings*
+--------------------------------------------------------------------------------
+- PRAGMA journal_mode=WAL;
+- PRAGMA synchronous=NORMAL;
+- PRAGMA temp_store=MEMORY;
+- PRAGMA foreign_keys=ON;
+
+
+--------------------------------------------------------------------------------
+S5. Purge Policy                                                        *S-purge*
+--------------------------------------------------------------------------------
+- LRU-ish purge when db file exceeds threshold (e.g., 1GB default):
+  - delete expired rows first
+  - then delete oldest fetched_at
+- Provide cache_purge tool to allow manual cleanup.
+
+
+================================================================================
+OUTPUT FORMATS                                                               *O*
+================================================================================
+
+--------------------------------------------------------------------------------
+O1. Markdown Output Normalization                                   *O-markdown*
+--------------------------------------------------------------------------------
+Even if Lectito emits markdown, enforce a consistent header:
+
+  ---
+  title: ...
+  source: ...
+  fetched_at: ...
+  extractor: lectito-core@<version>
+  siteconfig: <id or none>
+  ---
+  <markdown>
+
+Keep this stable so your agent can cite/compare docs over time.
+
+
+--------------------------------------------------------------------------------
+O2. Error Codes                                                        *O-errors*
+--------------------------------------------------------------------------------
+Structured errors (thiserror) that the agent can reason about:
+
+- INVALID_URL
+- SSRF_BLOCKED
+- ROBOTS_DISALLOWED
+- FETCH_TIMEOUT
+- FETCH_TOO_LARGE
+- HTTP_ERROR (with status_code)
+- BRAVE_AUTH_ERROR
+- BRAVE_RATE_LIMITED
+- EXTRACT_FAILED
+- RENDER_DISABLED
+- RENDER_FAILED
+- CACHE_ERROR
