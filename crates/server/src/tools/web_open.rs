@@ -16,8 +16,7 @@ pub struct WebOpenParams {
     /// The URL to fetch.
     pub url: String,
 
-    /// Extraction mode: "readable" (default) or "raw".
-    /// "rendered" mode is not yet implemented.
+    /// Extraction mode: "readable" (default), "raw", or "rendered" (requires render feature).
     #[serde(default = "default_mode")]
     pub mode: String,
 
@@ -125,11 +124,12 @@ pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) 
         return Err(Error::InvalidInput("url cannot be empty".into()).into());
     }
 
-    if params.mode != "readable" && params.mode != "raw" {
+    if params.mode != "readable" && params.mode != "raw" && params.mode != "rendered" {
         return Err(Error::InvalidInput(format!("unsupported mode: {}", params.mode)).into());
     }
 
     if params.mode == "rendered" {
+        #[cfg(not(feature = "render"))]
         return Err(Error::RenderDisabled.into());
     }
 
@@ -216,6 +216,61 @@ pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) 
             });
 
             (result.title, Some(normalized), None, links, debug_info)
+        }
+        #[cfg(feature = "render")]
+        "rendered" => {
+            use thndrs_client::{HeadlessRenderer, RenderOptions, Renderer};
+            use url::Url;
+
+            let renderer = HeadlessRenderer::new()
+                .await
+                .map_err(|e| Error::RenderFailed(e.to_string()))?;
+
+            let render_opts = RenderOptions { timeout_ms: params.timeout_ms, wait_for: None, viewport: (1280, 720) };
+            let url = Url::parse(&params.url).map_err(|e| Error::InvalidUrl(e.to_string()))?;
+
+            let rendered_page = renderer
+                .render(&url, &render_opts)
+                .await
+                .map_err(|e| Error::RenderFailed(e.to_string()))?;
+
+            let extract_config = params
+                .extract
+                .as_ref()
+                .map(|t| ExtractConfig { char_threshold: t.char_threshold, max_top_candidates: t.max_top_candidates })
+                .unwrap_or_default();
+
+            let extract_start = Instant::now();
+
+            let extractor = thndrs_client::LectitoExtractor::new();
+            let result = extractor.extract(&rendered_page.html, &rendered_page.final_url, &extract_config)?;
+            let extraction_time_ms = extract_start.elapsed().as_millis() as u64;
+
+            let doc = thndrs_client::ExtractedDoc {
+                title: result.title.clone(),
+                markdown: result.markdown.clone(),
+                extractor_version: result.extractor_version,
+            };
+
+            let normalized = normalize_markdown(&doc, &rendered_page.final_url, &Utc::now(), None);
+
+            let links: Vec<ExtractedLink> = result
+                .links
+                .into_iter()
+                .map(|l| ExtractedLink { text: l.text, href: l.href })
+                .collect();
+
+            let debug_info = params.debug.then_some(ExtractionDiagnostics {
+                char_count: normalized.len(),
+                links_count: links.len(),
+                extraction_time_ms: rendered_page.render_time_ms + extraction_time_ms,
+            });
+
+            (result.title, Some(normalized), None, links, debug_info)
+        }
+        #[cfg(not(feature = "render"))]
+        "rendered" => {
+            return Err(Error::RenderDisabled.into());
         }
         _ => return Err(Error::InvalidInput(format!("unsupported mode: {}", params.mode)).into()),
     };

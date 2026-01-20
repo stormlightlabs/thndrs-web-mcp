@@ -7,6 +7,9 @@ pub mod brave;
 pub mod extract;
 pub mod fetch;
 
+#[cfg(feature = "render")]
+pub mod render;
+
 pub use brave::{
     BraveClient, BraveConfig, BraveError, QueryMeta, SafeSearch, SearchRequest, SearchResponse, SearchResult,
 };
@@ -16,3 +19,6 @@ pub use extract::{
 };
 
 pub use fetch::{FetchClient, FetchConfig, FetchResponse};
+
+#[cfg(feature = "render")]
+pub use render::{HeadlessRenderer, RenderError, RenderOptions, RenderedPage, Renderer};

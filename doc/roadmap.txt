@@ -48,15 +48,11 @@ K6. Milestone 6: Batch operations + extraction diagnostics
       (e.g., extraction time, character count, links count)
 - [x] Add "domain_allowlist" post-filter for search results (A2)
 - [x] Add stable markdown header + link harvest (F4)
-Note: Full site-config pipeline deferred. Lectito's auto-detection handles most
-sites. If specific sites need custom XPath rules, consider adding them upstream
-in lectito-core. The siteconfig_id column exists for future use.
 
 K7. Milestone 7: Rendered mode (feature gated)
 --------------------------------------------------------------------------------
-- [ ] Add render crate (rust-headless-chrome or chromiumoxide)
-- [ ] Render HTML via headless browser -> feed HTML to Lectito
-- [ ] This keeps *one* extraction engine across raw vs rendered flows.
+- [x] Add render crate (rust-headless-chrome or chromiumoxide)
+- [x] Render HTML via headless browser -> feed HTML to Lectito
 Refs: headless Chrome control options.
 
 K8. Milestone 8: Hardening + observability
