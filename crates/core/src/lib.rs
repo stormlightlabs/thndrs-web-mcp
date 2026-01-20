@@ -6,7 +6,9 @@
 //! - Configuration structures
 
 pub mod cache;
+pub mod config;
 pub mod error;
 
 pub use cache::{CacheDb, Snapshot};
+pub use config::{AppConfig, ConfigError};
 pub use error::Error;

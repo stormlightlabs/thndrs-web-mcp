@@ -5,8 +5,8 @@
 use rmcp::{ErrorData as McpError, model::*};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use thndrs_client::{BraveClient, SafeSearch, SearchRequest};
-use thndrs_core::{CacheDb, Error};
+use thndrs_client::{BraveClient, BraveConfig, SafeSearch, SearchRequest};
+use thndrs_core::{AppConfig, CacheDb, Error};
 
 /// Input parameters for web_search tool.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema)]
@@ -117,7 +117,9 @@ pub struct DebugInfo {
 }
 
 /// Implementation of the web_search tool.
-pub async fn search_impl(db: &CacheDb, params: WebSearchParams) -> Result<CallToolResult, McpError> {
+pub async fn search_impl(
+    db: &CacheDb, config: &AppConfig, params: WebSearchParams,
+) -> Result<CallToolResult, McpError> {
     if params.query.is_empty() {
         return Err(Error::InvalidInput("query cannot be empty".into()).into());
     }
@@ -163,7 +165,16 @@ pub async fn search_impl(db: &CacheDb, params: WebSearchParams) -> Result<CallTo
         )]));
     }
 
-    let client = BraveClient::from_env().map_err(|e| match e {
+    let client = BraveClient::new(BraveConfig {
+        api_key: config
+            .require_brave_api_key()
+            .map_err(|e| Error::BraveAuthError(e.to_string()))?
+            .to_string(),
+        user_agent: config.user_agent.clone(),
+        timeout: config.timeout(),
+        ..Default::default()
+    })
+    .map_err(|e| match e {
         thndrs_client::BraveError::MissingApiKey => Error::BraveAuthError(e.to_string()),
         _ => Error::HttpError(e.to_string()),
     })?;
@@ -239,39 +250,31 @@ mod tests {
     #[tokio::test]
     async fn test_empty_query() {
         let db = CacheDb::open_in_memory().await.unwrap();
+        let config = AppConfig::default();
         let params = WebSearchParams { query: "".into(), ..Default::default() };
 
-        let result = search_impl(&db, params).await;
+        let result = search_impl(&db, &config, params).await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_invalid_safesearch() {
         let db = CacheDb::open_in_memory().await.unwrap();
+        let config = AppConfig::default();
         let params = WebSearchParams { query: "test".into(), safesearch: Some("invalid".into()), ..Default::default() };
 
-        let result = search_impl(&db, params).await;
+        let result = search_impl(&db, &config, params).await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_missing_api_key() {
-        let original = std::env::var("BRAVE_API_KEY").ok();
-        unsafe {
-            std::env::remove_var("BRAVE_API_KEY");
-        }
-
         let db = CacheDb::open_in_memory().await.unwrap();
+        let config = AppConfig::default(); // No brave_api_key set
         let params = WebSearchParams { query: "test".into(), ..Default::default() };
 
-        let result = search_impl(&db, params).await;
+        let result = search_impl(&db, &config, params).await;
         assert!(result.is_err());
-
-        if let Some(key) = original {
-            unsafe {
-                std::env::set_var("BRAVE_API_KEY", key);
-            }
-        }
     }
 
     #[test]

@@ -21,14 +21,13 @@ use rmcp::{
     service::{RequestContext, RoleServer},
     tool, tool_router,
 };
-use thndrs_core::CacheDb;
-
-/// Default database path for the cache.
-const DEFAULT_DB_PATH: &str = "./mcp-web-cache.sqlite";
+use std::sync::Arc;
+use thndrs_core::{AppConfig, CacheDb};
 
 /// The main MCP server handler for mcp-web.
 #[derive(Clone)]
 pub struct McpWebServer {
+    config: Arc<AppConfig>,
     tool_router: ToolRouter<Self>,
     cache: CacheDb,
 }
@@ -38,18 +37,16 @@ pub struct McpWebServer {
 /// This macro generates the routing logic that maps tool names to handler methods.
 #[tool_router]
 impl McpWebServer {
-    /// Create a new server handler.
+    /// Create a new server handler with the given configuration.
     ///
-    /// Opens the SQLite cache database at the default path or from the
-    /// MCP_WEB_DB_PATH environment variable.
-    pub async fn new() -> Result<Self, anyhow::Error> {
-        let db_path = std::env::var("MCP_WEB_DB_PATH")
-            .ok()
-            .unwrap_or_else(|| DEFAULT_DB_PATH.to_string());
+    /// Opens the SQLite cache database at the configured path and initializes
+    /// the Brave client if an API key is provided.
+    pub async fn new(config: AppConfig) -> Result<Self, anyhow::Error> {
+        let config = Arc::new(config);
 
-        let cache = CacheDb::open(&db_path).await?;
+        let cache = CacheDb::open(&config.db_path).await?;
 
-        Ok(Self { tool_router: Self::tool_router(), cache })
+        Ok(Self { config, tool_router: Self::tool_router(), cache })
     }
 
     /// Extract readable content from HTML.
@@ -68,16 +65,16 @@ impl McpWebServer {
     /// Modes: "readable" (default) or "raw".
     #[tool(description = "Fetch a URL and extract readable content with SSRF protection and robots.txt compliance.")]
     async fn web_open(&self, params: Parameters<WebOpenParams>) -> Result<CallToolResult, McpError> {
-        open_impl(&self.cache, params.0).await
+        open_impl(&self.cache, &self.config, params.0).await
     }
 
     /// Search the web using Brave Search API.
     ///
     /// Performs web search with optional filtering and caching.
-    /// Requires BRAVE_API_KEY environment variable to be set.
+    /// Requires MCP_WEB_BRAVE_API_KEY environment variable to be set.
     #[tool(description = "Search the web using Brave Search API with caching and optional domain filtering.")]
     async fn web_search(&self, params: Parameters<WebSearchParams>) -> Result<CallToolResult, McpError> {
-        search_impl(&self.cache, params.0).await
+        search_impl(&self.cache, &self.config, params.0).await
     }
 
     /// Retrieve a cached snapshot by hash.

@@ -14,3 +14,5 @@ thiserror = "2"
 rmcp = { version = "0.13", features = ["server", "transport-io", "macros"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std"] }
 schemars = "1"
+figment = { version = "0.10", features = ["env", "toml"] }
+tracing = "0.1"

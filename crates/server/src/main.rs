@@ -6,6 +6,7 @@
 use anyhow::Result;
 use rmcp::service::serve_server;
 use rmcp::transport::io::stdio;
+use thndrs_core::AppConfig;
 use tracing_subscriber::EnvFilter;
 
 mod handler;
@@ -19,9 +20,17 @@ async fn main() -> Result<()> {
         .json()
         .init();
 
+    let config = AppConfig::load()?;
+    tracing::info!(
+        db_path = %config.db_path.display(),
+        timeout_ms = config.timeout_ms,
+        max_bytes = config.max_bytes,
+        "Configuration loaded"
+    );
+
     tracing::info!("Starting mcp-web server on stdio transport");
 
-    let handler = handler::McpWebServer::new().await?;
+    let handler = handler::McpWebServer::new(config).await?;
     let transport = stdio();
     let server = serve_server(handler, transport).await?;
 

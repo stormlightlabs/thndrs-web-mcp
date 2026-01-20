@@ -7,7 +7,7 @@ use rmcp::{ErrorData as McpError, model::*};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thndrs_client::{ExtractConfig, FetchClient, FetchConfig, extract_readable, normalize_markdown};
-use thndrs_core::{CacheDb, Error, Snapshot, cache::hash::compute_cache_key};
+use thndrs_core::{AppConfig, CacheDb, Error, Snapshot, cache::hash::compute_cache_key};
 
 /// Input parameters for web_open tool.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -97,7 +97,7 @@ pub struct ExtractedLink {
 }
 
 /// Implementation of the web_open tool.
-pub async fn open_impl(db: &CacheDb, params: WebOpenParams) -> Result<CallToolResult, McpError> {
+pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) -> Result<CallToolResult, McpError> {
     if params.url.is_empty() {
         return Err(Error::InvalidInput("url cannot be empty".into()).into());
     }
@@ -139,15 +139,13 @@ pub async fn open_impl(db: &CacheDb, params: WebOpenParams) -> Result<CallToolRe
         )]));
     }
 
-    let mut fetch_config = FetchConfig {
+    let fetch_config = FetchConfig {
         max_bytes: params.max_bytes,
         timeout: std::time::Duration::from_millis(params.timeout_ms),
+        user_agent: config.user_agent.clone(),
+        respect_robots: config.respect_robots,
         ..Default::default()
     };
-
-    if let Ok(ua) = std::env::var("MCP_WEB_USER_AGENT") {
-        fetch_config.user_agent = ua;
-    }
 
     let fetch_client = FetchClient::new(fetch_config)?;
     let response = fetch_client.fetch(&params.url).await?;
@@ -248,6 +246,7 @@ mod tests {
     #[tokio::test]
     async fn test_open_empty_url() {
         let db = CacheDb::open_in_memory().await.unwrap();
+        let config = AppConfig::default();
         let params = WebOpenParams {
             url: "".into(),
             mode: "readable".into(),
@@ -258,7 +257,7 @@ mod tests {
             extract: None,
         };
 
-        let result = open_impl(&db, params).await;
+        let result = open_impl(&db, &config, params).await;
         assert!(result.is_err());
     }
 }

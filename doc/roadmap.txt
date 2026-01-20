@@ -32,7 +32,16 @@ K4. Milestone 4: Brave web_search tool
 - [x] Add short TTL search_cache table usage
 Refs: Brave web search docs for pagination, safesearch, freshness, snippets.
 
-K5. Milestone 5: Site-config pipeline
+K5. Milestone 5: Configuration Loading
+--------------------------------------------------------------------------------
+- [x] Define AppConfig struct with serde defaults matching doc/configuration.txt
+- [x] Integrate figment with layered loading: defaults → TOML file → env vars
+- [x] Add MCP_WEB_CONFIG_FILE env var for optional TOML config path
+- [x] Validate config at startup (API key presence, valid ranges)
+- [x] Wire config into McpWebServer and all tool contexts
+Refs: figment crate, twelve-factor app config.
+
+K6. Milestone 6: Site-config pipeline
 --------------------------------------------------------------------------------
 - [ ] Add ./site_configs/ domain mapping
 - [ ] Add cache metadata for siteconfig + extractor version
@@ -42,20 +51,20 @@ K5. Milestone 5: Site-config pipeline
 - [ ] Add "domain_allowlist" post-filter for search results (A2)
 - [ ] Add stable markdown header + link harvest (F4)
 
-K6. Milestone 6: Rendered mode (optional feature)
+K7. Milestone 7: Rendered mode (optional feature)
 --------------------------------------------------------------------------------
 - [ ] Add render crate (rust-headless-chrome or chromiumoxide)
 - [ ] Render HTML via headless browser -> feed HTML to Lectito
 - [ ] This keeps *one* extraction engine across raw vs rendered flows.
 Refs: headless Chrome control options.
 
-K7. Milestone 7: Hardening + observability
+K8. Milestone 8: Hardening + observability
 --------------------------------------------------------------------------------
 - [ ] JSONL logs + metrics counters (H4)
 - [ ] Fuzz-ish tests for URL parsing inputs
 - [ ] Cache purge policy (C4) + size ceiling
 - [ ] Add documentation: SECURITY.md + threat model
 
-K8. Milestone 8: Packaging + integration with your agent harness
+K9. Milestone 9: Packaging + integration with your agent harness
 --------------------------------------------------------------------------------
 - [ ] Provide a single binary release
