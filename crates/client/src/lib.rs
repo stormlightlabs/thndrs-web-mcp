@@ -3,9 +3,13 @@
 //! This crate provides HTTP fetch pipeline, content extraction, and related
 //! functionality shared by the server and CLI.
 
+pub mod brave;
 pub mod extract;
 pub mod fetch;
 
+pub use brave::{
+    BraveClient, BraveConfig, BraveError, QueryMeta, SafeSearch, SearchRequest, SearchResponse, SearchResult,
+};
 pub use extract::{
     ExtractConfig, ExtractedDoc, ExtractionResult, Extractor, LectitoExtractor, Link, extract_links, extract_readable,
     normalize_markdown,

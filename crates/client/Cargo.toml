@@ -26,17 +26,22 @@ ipnet = "2"
 # robots.txt
 robotstxt-rs = "0.1"
 
+# hashing for cache keys
+sha2 = "0.10"
+hex = "0.4"
+regex = "1"
+
 # extraction
 lectito-core = { git = "https://github.com/stormlightlabs/lectito", features = [
     "markdown",
     "siteconfig",
     "fetch",
 ], default-features = false }
-html5ever = "0.29"
-scraper = "0.21"
+scraper = "0.25"
 
 # cache types from core
 thndrs-core = { path = "../core" }
+
 
 [lints]
 workspace = true

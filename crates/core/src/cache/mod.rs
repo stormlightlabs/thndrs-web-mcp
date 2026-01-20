@@ -11,9 +11,11 @@
 pub mod connection;
 pub mod hash;
 pub mod migrations;
+pub mod search;
 pub mod snapshots;
 
 pub use crate::Error;
 
 pub use connection::CacheDb;
+pub use search::SearchCacheMeta;
 pub use snapshots::Snapshot;

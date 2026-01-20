@@ -18,6 +18,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 anyhow = "1"
 chrono = { version = "0.4", features = ["serde"] }
+url = "2"
 
 lectito-core = { git = "https://github.com/stormlightlabs/lectito", default-features = false, features = [
     "markdown",

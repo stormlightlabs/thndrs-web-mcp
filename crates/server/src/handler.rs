@@ -6,6 +6,7 @@
 use crate::tools::cache::{CacheGetParams, CachePurgeParams, get_impl, purge_impl};
 use crate::tools::web_extract::{WebExtractParams, extract_impl};
 use crate::tools::web_open::{WebOpenParams, open_impl};
+use crate::tools::web_search::{WebSearchParams, search_impl};
 
 use rmcp::{
     ErrorData as McpError, ServerHandler,
@@ -68,6 +69,15 @@ impl McpWebServer {
     #[tool(description = "Fetch a URL and extract readable content with SSRF protection and robots.txt compliance.")]
     async fn web_open(&self, params: Parameters<WebOpenParams>) -> Result<CallToolResult, McpError> {
         open_impl(&self.cache, params.0).await
+    }
+
+    /// Search the web using Brave Search API.
+    ///
+    /// Performs web search with optional filtering and caching.
+    /// Requires BRAVE_API_KEY environment variable to be set.
+    #[tool(description = "Search the web using Brave Search API with caching and optional domain filtering.")]
+    async fn web_search(&self, params: Parameters<WebSearchParams>) -> Result<CallToolResult, McpError> {
+        search_impl(&self.cache, params.0).await
     }
 
     /// Retrieve a cached snapshot by hash.

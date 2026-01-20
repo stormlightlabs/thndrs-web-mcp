@@ -385,11 +385,11 @@ K3. Milestone 3: HTTP fetch pipeline (safe) + readable mode
 
 K4. Milestone 4: Brave web_search tool
 --------------------------------------------------------------------------------
-- [ ] Implement brave-client:
+- [x] Implement brave-client:
       - headers/auth
       - q/count/offset/freshness/safesearch/country/lang/extra_snippets
-- [ ] Normalize results + return more_results_available where possible
-- [ ] Add short TTL search_cache table usage (optional)
+- [x] Normalize results + return more_results_available where possible
+- [x] Add short TTL search_cache table usage
 Refs: Brave web search docs for pagination, safesearch, freshness, snippets.
 
 K5. Milestone 5: Site-config pipeline (Lectito advantage)
