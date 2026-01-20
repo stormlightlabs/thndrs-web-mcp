@@ -6,7 +6,8 @@ use chrono::Utc;
 use rmcp::{ErrorData as McpError, model::*};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use thndrs_client::{ExtractConfig, FetchClient, FetchConfig, extract_readable, normalize_markdown};
+use std::time::Instant;
+use thndrs_client::{ExtractConfig, Extractor, FetchClient, FetchConfig, LectitoExtractor, normalize_markdown};
 use thndrs_core::{AppConfig, CacheDb, Error, Snapshot, cache::hash::compute_cache_key};
 
 /// Input parameters for web_open tool.
@@ -39,6 +40,10 @@ pub struct WebOpenParams {
     /// Optional extraction tuning parameters.
     #[serde(default)]
     pub extract: Option<ExtractTuning>,
+
+    /// Enable extraction diagnostics output for debugging.
+    #[serde(default)]
+    pub debug: bool,
 }
 
 fn default_mode() -> String {
@@ -65,6 +70,21 @@ pub struct ExtractTuning {
     pub max_top_candidates: Option<usize>,
 }
 
+/// Extraction diagnostics for debugging and tuning.
+///
+/// Note: Full diagnostics (candidates_considered, winning_candidate selector,
+/// siblings_included) require lectito_core to expose internal extraction state.
+/// This basic implementation captures timing and character count information.
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ExtractionDiagnostics {
+    /// Character count of extracted markdown content.
+    pub char_count: usize,
+    /// Number of links extracted from the content.
+    pub links_count: usize,
+    /// Extraction time in milliseconds.
+    pub extraction_time_ms: u64,
+}
+
 /// Output structure for web_open tool.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct WebOpenOutput {
@@ -88,6 +108,9 @@ pub struct WebOpenOutput {
     pub links: Vec<ExtractedLink>,
     /// Content hash for cache lookup.
     pub hash: String,
+    /// Extraction diagnostics (only if debug=true).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub debug: Option<ExtractionDiagnostics>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -132,6 +155,7 @@ pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) 
                 .and_then(|j| serde_json::from_str(&j).ok())
                 .unwrap_or_default(),
             hash,
+            debug: None,
         };
 
         return Ok(CallToolResult::success(vec![Content::text(
@@ -151,20 +175,25 @@ pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) 
     let response = fetch_client.fetch(&params.url).await?;
     let fetched_at = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
-    let (title, markdown, raw, links) = match params.mode.as_str() {
+    let (title, markdown, raw, links, debug_info) = match params.mode.as_str() {
         "raw" => {
             let html = String::from_utf8_lossy(&response.bytes).to_string();
-            (None, None, Some(html), Vec::new())
+            (None, None, Some(html), Vec::new(), None)
         }
         "readable" => {
             let html = String::from_utf8_lossy(&response.bytes).to_string();
+
             let extract_config = params
                 .extract
                 .as_ref()
-                .map(|t| ExtractConfig { char_threshold: t.char_threshold, max_top_candidates: t.max_top_candidates });
+                .map(|t| ExtractConfig { char_threshold: t.char_threshold, max_top_candidates: t.max_top_candidates })
+                .unwrap_or_default();
 
-            let _config = extract_config.unwrap_or_default();
-            let result = extract_readable(&html, &response.final_url)?;
+            let extract_start = Instant::now();
+
+            let extractor = thndrs_client::LectitoExtractor::new();
+            let result = extractor.extract(&html, &response.final_url, &extract_config)?;
+            let extraction_time_ms = extract_start.elapsed().as_millis() as u64;
 
             let doc = thndrs_client::ExtractedDoc {
                 title: result.title.clone(),
@@ -180,7 +209,13 @@ pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) 
                 .map(|l| ExtractedLink { text: l.text, href: l.href })
                 .collect();
 
-            (result.title, Some(normalized), None, links)
+            let debug_info = params.debug.then_some(ExtractionDiagnostics {
+                char_count: normalized.len(),
+                links_count: links.len(),
+                extraction_time_ms,
+            });
+
+            (result.title, Some(normalized), None, links, debug_info)
         }
         _ => return Err(Error::InvalidInput(format!("unsupported mode: {}", params.mode)).into()),
     };
@@ -216,7 +251,7 @@ pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) 
         extract_cfg_json: None,
         headers_json: None,
         fetch_ms: Some(response.fetch_ms as i64),
-        extract_ms: None,
+        extract_ms: debug_info.as_ref().map(|d| d.extraction_time_ms as i64),
     };
 
     db.upsert_snapshot(&snapshot).await?;
@@ -232,6 +267,7 @@ pub async fn open_impl(db: &CacheDb, config: &AppConfig, params: WebOpenParams) 
         title,
         links,
         hash,
+        debug: debug_info,
     };
 
     Ok(CallToolResult::success(vec![Content::text(
@@ -255,6 +291,7 @@ mod tests {
             timeout_ms: 20000,
             accept: None,
             extract: None,
+            debug: false,
         };
 
         let result = open_impl(&db, &config, params).await;

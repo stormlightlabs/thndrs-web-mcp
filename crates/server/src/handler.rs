@@ -4,6 +4,7 @@
 //! to the appropriate implementations.
 
 use crate::tools::cache::{CacheGetParams, CachePurgeParams, get_impl, purge_impl};
+use crate::tools::web_batch_open::{WebBatchOpenParams, batch_open_impl};
 use crate::tools::web_extract::{WebExtractParams, extract_impl};
 use crate::tools::web_open::{WebOpenParams, open_impl};
 use crate::tools::web_search::{WebSearchParams, search_impl};
@@ -66,6 +67,15 @@ impl McpWebServer {
     #[tool(description = "Fetch a URL and extract readable content with SSRF protection and robots.txt compliance.")]
     async fn web_open(&self, params: Parameters<WebOpenParams>) -> Result<CallToolResult, McpError> {
         open_impl(&self.cache, &self.config, params.0).await
+    }
+
+    /// Fetch multiple URLs and extract readable content in parallel.
+    ///
+    /// Performs concurrent HTTP fetches with bounded concurrency, SSRF protection,
+    /// and robots.txt compliance. Results are returned in input order.
+    #[tool(description = "Fetch multiple URLs in parallel with bounded concurrency and SSRF protection.")]
+    async fn web_batch_open(&self, params: Parameters<WebBatchOpenParams>) -> Result<CallToolResult, McpError> {
+        batch_open_impl(&self.cache, &self.config, params.0).await
     }
 
     /// Search the web using Brave Search API.

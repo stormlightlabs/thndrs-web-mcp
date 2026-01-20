@@ -4,10 +4,12 @@
 #![allow(unused_imports)]
 
 pub mod cache;
+pub mod web_batch_open;
 pub mod web_extract;
 pub mod web_open;
 pub mod web_search;
 
+pub use web_batch_open::{BatchItem, BatchItemStatus, BatchSummary, WebBatchOpenOutput, WebBatchOpenParams};
 pub use web_extract::{WebExtractOutput, WebExtractParams};
-pub use web_open::{WebOpenOutput, WebOpenParams};
+pub use web_open::{ExtractedLink, ExtractionDiagnostics, WebOpenOutput, WebOpenParams};
 pub use web_search::{DebugInfo, QueryMeta, SearchResult, WebSearchOutput, WebSearchParams};
