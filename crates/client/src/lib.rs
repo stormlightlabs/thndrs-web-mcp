@@ -1,14 +1,14 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! Client code for mcp-web.
+//!
+//! This crate provides HTTP fetch pipeline, content extraction, and related
+//! functionality shared by the server and CLI.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod extract;
+pub mod fetch;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use extract::{
+    ExtractConfig, ExtractedDoc, ExtractionResult, Extractor, LectitoExtractor, Link, extract_links, extract_readable,
+    normalize_markdown,
+};
+
+pub use fetch::{FetchClient, FetchConfig, FetchResponse};

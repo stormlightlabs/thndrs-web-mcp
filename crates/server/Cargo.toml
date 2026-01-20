@@ -26,3 +26,4 @@ lectito-core = { git = "https://github.com/stormlightlabs/lectito", default-feat
 ] }
 
 thndrs-core = { path = "../core" }
+thndrs-client = { path = "../client" }

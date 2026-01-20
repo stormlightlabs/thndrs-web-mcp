@@ -5,6 +5,7 @@
 
 use crate::tools::cache::{CacheGetParams, CachePurgeParams, get_impl, purge_impl};
 use crate::tools::web_extract::{WebExtractParams, extract_impl};
+use crate::tools::web_open::{WebOpenParams, open_impl};
 
 use rmcp::{
     ErrorData as McpError, ServerHandler,
@@ -57,6 +58,16 @@ impl McpWebServer {
     #[tool(description = "Extract readable content from HTML. Returns Markdown with title, links, and main content.")]
     async fn web_extract(&self, params: Parameters<WebExtractParams>) -> Result<CallToolResult, McpError> {
         extract_impl(params.0).await
+    }
+
+    /// Fetch a URL and extract readable content.
+    ///
+    /// Performs HTTP fetch with SSRF protection and robots.txt compliance,
+    /// then extracts the main content as Markdown.
+    /// Modes: "readable" (default) or "raw".
+    #[tool(description = "Fetch a URL and extract readable content with SSRF protection and robots.txt compliance.")]
+    async fn web_open(&self, params: Parameters<WebOpenParams>) -> Result<CallToolResult, McpError> {
+        open_impl(&self.cache, params.0).await
     }
 
     /// Retrieve a cached snapshot by hash.

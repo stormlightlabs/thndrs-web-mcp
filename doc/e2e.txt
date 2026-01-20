@@ -1,0 +1,115 @@
+================================================================================
+Manual Integration Testing Guide (E2E)                                 *mcp-e2e*
+================================================================================
+This document contains manual steps to verify mcp-web milestones 1-3.
+
+================================================================================
+P. Prerequisites                                                             *P*
+================================================================================
+P1. Tools
+--------------------------------------------------------------------------------
+1. Rust Toolchain: Ensure `cargo` is installed/updated.
+2. SQLite3 CLI: Ensure `sqlite3` is installed.
+3. Build Project:
+   $ cargo build --release
+   # Binary at ./target/release/mcp-web
+
+================================================================================
+M1. Milestone 1: Stdio Server & web_extract                                 *M1*
+================================================================================
+Goal: Verify server boots on stdio and `web_extract` works (no network).
+
+M1.1. Server Initialization
+--------------------------------------------------------------------------------
+Action: Run server and send initialize request.
+
+Command:
+  $ ./target/release/mcp-web
+
+Input (stdin):
+  {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {},
+      "clientInfo": {"name": "manual-test", "version": "1.0"}
+    }
+  }
+
+Verification:
+- Output is valid JSON-RPC response with `result.capabilities`.
+- Logs appear on stderr (not stdout).
+
+M1.2. web_extract Tool
+--------------------------------------------------------------------------------
+Action: Call `web_extract` with raw HTML.
+
+Command:
+  $ echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"web_extract","arguments":{"html":"<html><body><article><h1>Test Title</h1><p>Test content.</p></article></body></html>"}}}' | ./target/release/mcp-web
+
+Verification:
+- JSON-RPC success response.
+- `content` JSON string contains markdown (e.g., `# Test Title`).
+
+================================================================================
+M2. Milestone 2: SQLite Cache & Migrations                                  *M2*
+================================================================================
+Goal: Verify database creation, migrations, and WAL mode.
+
+M2.1. Database Creation & Schema
+--------------------------------------------------------------------------------
+Action: Run server (triggers DB creation), then inspect.
+
+Command:
+  $ sqlite3 mcp-web-cache.sqlite ".schema"
+
+Verification:
+- Tables exist: `snapshots`, `search_cache`, `_migrations`.
+- Indexes exist (e.g., `idx_snapshots_url`).
+
+M2.2. WAL Mode
+--------------------------------------------------------------------------------
+Action: Check SQLite pragmas.
+
+Command:
+  $ sqlite3 mcp-web-cache.sqlite "PRAGMA journal_mode;"
+
+Verification:
+- Output: `wal`
+
+================================================================================
+M3. Milestone 3: Safe Fetch & web_open                                      *M3*
+================================================================================
+Goal: Verify `web_open`, SSRF protection, caching.
+
+M3.1. web_open (Readable Mode)
+--------------------------------------------------------------------------------
+Action: Fetch real URL.
+
+Command:
+  $ echo '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"web_open","arguments":{"url":"https://example.com","mode":"readable"}}}' | ./target/release/mcp-web
+
+Verification:
+- Success response with extracted markdown.
+- Row added to `snapshots` table in SQLite DB.
+
+M3.2. SSRF Protection
+--------------------------------------------------------------------------------
+Action: Attempt fetch of local/private IP.
+
+Command:
+  $ echo '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"web_open","arguments":{"url":"http://127.0.0.1","mode":"readable"}}}' | ./target/release/mcp-web
+
+Verification:
+- JSON-RPC error response.
+- Message indicates "SSRF blocked" or "Blocked IP".
+
+M3.3. Cache Hit
+--------------------------------------------------------------------------------
+Action: Run M3.1 command again.
+
+Verification:
+- Instant response.
+- Server logs (stderr) indicate cache hit.

@@ -378,9 +378,9 @@ K2. Milestone 2: SQLite cache + migrations
 
 K3. Milestone 3: HTTP fetch pipeline (safe) + readable mode
 --------------------------------------------------------------------------------
-- [ ] Implement SSRF checks + redirect limits + max_bytes (E2)
-- [ ] Implement robots.txt fetch + decision cache (E3)
-- [ ] Implement web_open(readable):
+- [x] Implement SSRF checks + redirect limits + max_bytes (E2)
+- [x] Implement robots.txt fetch + decision cache (E3)
+- [x] Implement web_open(readable):
       fetch HTML -> Lectito extract -> markdown normalize -> cache
 
 K4. Milestone 4: Brave web_search tool
